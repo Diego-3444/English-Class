@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>World Tour — The English Adventure</title>
+<style>
+:root{
+  --bg:#0d1b2a; --bg2:#132a3f; --panel:#16324a; --line:#27506f;
+  --sand:#e8c07d; --sand2:#ffd9a0; --ink:#f2f6fa; --mute:#9db4c9;
+  --ok:#4ade80; --no:#f87171;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:radial-gradient(1200px 700px at 50% -10%,#1b3a55,var(--bg));
+  color:var(--ink); font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif;
+  overflow:hidden;
+}
+button{font-family:inherit; cursor:pointer; border:none; border-radius:10px}
+h1,h2,h3{margin:0}
+
+/* ---------- generic screens ---------- */
+.screen{position:fixed; inset:0; display:none; overflow:auto; padding:28px}
+.screen.on{display:block}
+.center-wrap{max-width:820px; margin:0 auto}
+
+.title{font-size:46px; letter-spacing:1px; font-weight:800;
+  background:linear-gradient(90deg,var(--sand2),#fff,var(--sand));
+  -webkit-background-clip:text; background-clip:text; color:transparent; text-align:center}
+.sub{text-align:center; color:var(--mute); margin:8px 0 26px; font-size:16px; letter-spacing:2px; text-transform:uppercase}
+
+.card-panel{background:linear-gradient(180deg,var(--panel),#11263a); border:1px solid var(--line);
+  border-radius:18px; padding:22px 24px; margin-bottom:16px; box-shadow:0 18px 50px rgba(0,0,0,.45)}
+
+.btn{background:linear-gradient(180deg,var(--sand2),var(--sand)); color:#3b2708; font-weight:800;
+  padding:14px 26px; font-size:17px; box-shadow:0 6px 0 #b98f4d; transition:.08s}
+.btn:active{transform:translateY(3px); box-shadow:0 3px 0 #b98f4d}
+.btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--line); box-shadow:none; font-weight:600}
+.btn.ok{background:linear-gradient(180deg,#86efac,#4ade80); color:#0b2a16; box-shadow:0 6px 0 #2f9e5b}
+.btn.no{background:linear-gradient(180deg,#fca5a5,#f87171); color:#3a0d0d; box-shadow:0 6px 0 #b64545}
+.btn:disabled{opacity:.35; cursor:not-allowed; box-shadow:none}
+
+/* ---------- setup ---------- */
+.pl-row{display:flex; gap:10px; align-items:center; margin-bottom:10px}
+.pl-dot{width:26px;height:26px;border-radius:50%;flex:0 0 auto;border:2px solid rgba(255,255,255,.35)}
+.pl-row input{flex:1; background:#0e2032; border:1px solid var(--line); color:var(--ink);
+  padding:11px 13px; border-radius:10px; font-size:15px; font-family:inherit}
+.pl-row input:focus{outline:2px solid var(--sand)}
+.rules-list{color:#cfe0ee; line-height:1.65; font-size:15px; padding-left:20px}
+.rules-list li{margin-bottom:7px}
+.badge{display:inline-block; background:#0e2032; border:1px solid var(--line); color:var(--sand2);
+  padding:3px 9px; border-radius:20px; font-size:12px; margin:2px 4px 2px 0; letter-spacing:.5px}
+
+/* ---------- game layout ---------- */
+#game{display:none; height:100%; padding:0}
+#game.on{display:grid; grid-template-columns:1fr 320px}
+#boardWrap{position:relative; padding:14px}
+#board{position:relative; width:100%; height:100%; min-height:520px}
+
+.tile{position:absolute; width:9.09%; height:16.66%; padding:3px}
+.tile-in{width:100%;height:100%; background:#12293d; border:1px solid var(--line); border-radius:9px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  font-size:11px; color:var(--mute); text-align:center; overflow:hidden; transition:.2s; position:relative}
+.tile-in .ic{font-size:18px; line-height:1}
+.tile-in .nm{font-size:9px; letter-spacing:.3px; text-transform:uppercase; opacity:.8; padding:0 2px}
+.tile.city .tile-in{background:linear-gradient(180deg,#3d2f10,#241b08); border-color:var(--sand)}
+.tile.city .tile-in .nm{color:var(--sand2); font-weight:800; font-size:11px; opacity:1}
+.tile.start .tile-in{background:linear-gradient(180deg,#123d2c,#0a2519); border-color:#4ade80}
+.tile.here .tile-in{border-color:#fff; box-shadow:0 0 0 2px #fff, 0 0 22px rgba(255,255,255,.55); transform:scale(1.06)}
+.pawns{display:flex; gap:2px; flex-wrap:wrap; justify-content:center; margin-top:2px}
+.pawn{width:11px;height:11px;border-radius:50%;border:1.5px solid rgba(0,0,0,.5); box-shadow:0 0 6px rgba(0,0,0,.6)}
+
+/* center of board */
+#center{position:absolute; left:9.09%; top:16.66%; width:81.82%; height:66.68%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:16px;
+  background:radial-gradient(circle at 50% 40%,rgba(232,192,125,.10),transparent 65%)}
+#center::before{content:"🌍"; position:absolute; font-size:min(30vh,300px); opacity:.05; pointer-events:none}
+#turnName{font-size:30px; font-weight:800; letter-spacing:.5px}
+#turnSub{color:var(--mute); font-size:14px; text-align:center; max-width:460px; line-height:1.5}
+#die{width:104px;height:104px;border-radius:20px;background:linear-gradient(160deg,#fff,#d8dde3);
+  color:#12293d; font-size:52px; font-weight:800; display:flex; align-items:center; justify-content:center;
+  box-shadow:0 12px 30px rgba(0,0,0,.5); transition:.25s}
+#die.rolling{animation:sh .35s linear infinite}
+@keyframes sh{0%{transform:rotate(0) scale(1)}25%{transform:rotate(-14deg) scale(1.08)}
+ 50%{transform:rotate(0) scale(.95)}75%{transform:rotate(14deg) scale(1.08)}100%{transform:rotate(0) scale(1)}}
+
+/* ---------- sidebar ---------- */
+#side{background:#0b1a28; border-left:1px solid var(--line); padding:16px; overflow:auto}
+.side-h{font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--mute); margin:16px 0 8px}
+.side-h:first-child{margin-top:0}
+.p-card{background:#12293d; border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:8px; transition:.2s}
+.p-card.act{border-color:var(--sand); background:linear-gradient(180deg,#2b2410,#12293d)}
+.p-top{display:flex; align-items:center; gap:8px}
+.p-name{font-weight:700; font-size:15px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.p-pts{color:var(--sand2); font-weight:800; font-size:14px}
+.stamps{display:flex; gap:4px; margin-top:7px}
+.stamp{flex:1; text-align:center; font-size:9px; padding:3px 0; border-radius:5px; border:1px dashed var(--line);
+  color:#5f7d99; letter-spacing:.3px}
+.stamp.got{background:#3d2f10; border:1px solid var(--sand); color:var(--sand2); font-weight:700}
+#log{font-size:12.5px; color:#9fb6cb; line-height:1.6; max-height:210px; overflow:auto}
+#log div{padding:3px 0; border-bottom:1px solid rgba(255,255,255,.05)}
+#log b{color:var(--sand2)}
+
+/* ---------- card modal ---------- */
+#modal{position:fixed; inset:0; background:rgba(4,10,17,.86); backdrop-filter:blur(4px);
+  display:none; align-items:center; justify-content:center; padding:22px; z-index:50}
+#modal.on{display:flex}
+#mcard{width:min(660px,100%); max-height:92vh; overflow:auto; border-radius:20px; padding:26px 28px;
+  background:linear-gradient(180deg,#1c3b56,#102336); border:1px solid var(--line);
+  box-shadow:0 30px 80px rgba(0,0,0,.7); animation:pop .3s cubic-bezier(.2,1.4,.5,1)}
+@keyframes pop{from{transform:scale(.85) translateY(20px); opacity:0}to{transform:none;opacity:1}}
+.m-type{display:flex; align-items:center; gap:10px; font-size:12px; letter-spacing:2.5px; text-transform:uppercase; color:var(--mute)}
+.m-title{font-size:27px; font-weight:800; margin:10px 0 4px}
+.m-focus{color:var(--sand2); font-size:13px; margin-bottom:16px; font-style:italic}
+.m-task{font-size:18.5px; line-height:1.6; background:rgba(0,0,0,.25); border-left:3px solid var(--sand);
+  padding:15px 17px; border-radius:0 10px 10px 0; margin-bottom:16px}
+.m-lang{font-size:13px; color:#b9cee0; margin-bottom:18px}
+.m-lang span{display:inline-block; background:#0e2032; border:1px solid var(--line);
+  padding:5px 10px; border-radius:8px; margin:3px 5px 3px 0}
+#timer{font-size:52px; font-weight:800; text-align:center; letter-spacing:2px; margin:6px 0 14px; font-variant-numeric:tabular-nums}
+#timer.warn{color:var(--no); animation:pulse .5s infinite alternate}
+@keyframes pulse{to{transform:scale(1.06)}}
+#writeBox{width:100%; min-height:120px; background:#0b1a28; border:1px solid var(--line); border-radius:12px;
+  color:var(--ink); padding:13px; font-size:16px; font-family:inherit; line-height:1.5; resize:vertical}
+#writeBox:focus{outline:2px solid var(--sand)}
+#wcount{font-size:13px; color:var(--mute); text-align:right; margin:6px 0 14px}
+#wcount.ok{color:var(--ok)}
+.m-actions{display:flex; gap:10px; flex-wrap:wrap; justify-content:center}
+.vote-note{text-align:center; color:var(--mute); font-size:13px; margin-bottom:12px}
+
+/* ---------- win ---------- */
+#winScreen{background:radial-gradient(900px 600px at 50% 20%,#2a4a2f,var(--bg))}
+.trophy{font-size:110px; text-align:center; animation:pop .5s}
+table.score{width:100%; border-collapse:collapse; margin-top:10px}
+table.score td,table.score th{padding:9px 10px; border-bottom:1px solid var(--line); text-align:left; font-size:15px}
+table.score th{color:var(--mute); font-size:11px; letter-spacing:1.5px; text-transform:uppercase}
+.topbar{position:absolute; top:16px; right:16px; display:flex; gap:8px; z-index:10}
+.topbar button{background:#12293d; color:var(--mute); border:1px solid var(--line); padding:7px 13px; font-size:12px}
+@media(max-width:900px){#game.on{grid-template-columns:1fr; grid-template-rows:1fr auto}
+  #boardWrap{min-height:70vh} #side{border-left:none; border-top:1px solid var(--line)}}
+</style>
+</head>
+<body>
+
+<!-- ================= SETUP ================= -->
+<section id="setup" class="screen on">
+  <div class="center-wrap">
+    <h1 class="title">WORLD TOUR</h1>
+    <p class="sub">The English Adventure · 5 cities · 46 challenges</p>
+
+    <div class="card-panel">
+      <h3 style="margin-bottom:12px">Travellers</h3>
+      <div id="players"></div>
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <button class="btn ghost" id="addP">+ Add player</button>
+        <button class="btn ghost" id="delP">− Remove</button>
+      </div>
+    </div>
+
+    <div class="card-panel">
+      <h3 style="margin-bottom:10px">How to play</h3>
+      <ol class="rules-list">
+        <li><b>Roll the die</b> and move your token around the world map.</li>
+        <li>The tile you land on gives you a <b>challenge card</b>. Everything is done <b>in English</b>.</li>
+        <li>Speaking cards are <b>timed</b>. Writing cards have a <b>minimum word count</b>.</li>
+        <li>When you finish, the other players <b>vote</b>: challenge passed (+10 points) or not.</li>
+        <li>Landing on a <b>city</b> (Tokyo, Cairo, Paris, Lima, New York) triggers a big City Challenge.
+            Pass it and you earn that city's <b>passport stamp</b> (+25 points).</li>
+        <li>First traveller with <b>all 5 stamps</b> who then returns <b>Home</b> wins the World Tour.</li>
+        <li>Missed a city? Keep going around — you can try it again next lap.</li>
+      </ol>
+      <div style="margin-top:14px">
+        <span class="badge">✈️ Role-play</span><span class="badge">🍽️ Politeness</span>
+        <span class="badge">🏨 Present perfect</span><span class="badge">📸 Writing</span>
+        <span class="badge">⚠️ Conditionals</span><span class="badge">🎒 Vocabulary sprints</span>
+        <span class="badge">🛂 Debate &amp; storytelling</span>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding-bottom:30px">
+      <button class="btn" id="startBtn" style="font-size:20px;padding:16px 44px">Start the tour ✈</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= GAME ================= -->
+<section id="game">
+  <div id="boardWrap">
+    <div class="topbar">
+      <button id="howBtn">Rules</button>
+      <button id="resetBtn">Restart</button>
+    </div>
+    <div id="board">
+      <div id="center">
+        <div id="turnName">—</div>
+        <div id="die">🎲</div>
+        <div id="turnSub">Roll the die to begin.</div>
+        <button class="btn" id="rollBtn">Roll the die</button>
+      </div>
+    </div>
+  </div>
+  <aside id="side">
+    <div class="side-h">Passports</div>
+    <div id="pList"></div>
+    <div class="side-h">Flight log</div>
+    <div id="log"></div>
+  </aside>
+</section>
+
+<!-- ================= CARD MODAL ================= -->
+<div id="modal"><div id="mcard"></div></div>
+
+<!-- ================= WIN ================= -->
+<section id="winScreen" class="screen">
+  <div class="center-wrap">
+    <div class="trophy">🏆</div>
+    <h1 class="title" id="winName">—</h1>
+    <p class="sub">completed the World Tour</p>
+    <div class="card-panel"><table class="score" id="scoreTable"></table></div>
+    <div style="text-align:center"><button class="btn" onclick="location.reload()">Play again</button></div>
+  </div>
+</section>
+
+<script src="cards.js"></script>
+<script>
+/* ================= STATE ================= */
+const COLORS = ["#ff6b6b","#4dabf7","#51cf66","#ffd43b"];
+const CITIES = ["Tokyo","Cairo","Paris","Lima","New York"];
+let S = { players:[], turn:0, decks:{}, busy:false };
+
+/* ================= SETUP SCREEN ================= */
+const playersEl = document.getElementById("players");
+function renderSetup(){
+  playersEl.innerHTML = "";
+  S.setupNames = S.setupNames || ["Player 1","Player 2"];
+  S.setupNames.forEach((n,i)=>{
+    const row = document.createElement("div"); row.className="pl-row";
+    row.innerHTML = `<div class="pl-dot" style="background:${COLORS[i]}"></div>
+      <input value="${n.replace(/"/g,'&quot;')}" maxlength="16" data-i="${i}">`;
+    playersEl.appendChild(row);
+  });
+  playersEl.querySelectorAll("input").forEach(inp=>{
+    inp.oninput = e => S.setupNames[+e.target.dataset.i] = e.target.value;
+  });
+  document.getElementById("addP").disabled = S.setupNames.length>=4;
+  document.getElementById("delP").disabled = S.setupNames.length<=2;
+}
+document.getElementById("addP").onclick = ()=>{ S.setupNames.push("Player "+(S.setupNames.length+1)); renderSetup(); };
+document.getElementById("delP").onclick = ()=>{ S.setupNames.pop(); renderSetup(); };
+renderSetup();
+
+/* ================= BOARD GEOMETRY (11 x 6 perimeter = 30 tiles) ======== */
+function tileXY(i){
+  const CW=100/11, RH=100/6;
+  let col,row;
+  if(i<=10){ col=i;        row=0; }
+  else if(i<=15){ col=10;  row=i-10; }
+  else if(i<=25){ col=25-i;row=5; }
+  else { col=0;            row=30-i; }
+  return { x:col*CW, y:row*RH };
+}
+
+/* ================= START GAME ================= */
+document.getElementById("startBtn").onclick = ()=>{
+  S.players = S.setupNames.map((n,i)=>({
+    name:(n||("Player "+(i+1))).trim()||("Player "+(i+1)),
+    color:COLORS[i], pos:0, lap:0, pts:0, stamps:[]
+  }));
+  S.turn = 0;
+  // build & shuffle a deck per card type
+  S.decks = {};
+  ["AIRPORT","RESTAURANT","HOTEL","POSTCARD","TROUBLE","BONUS"].forEach(t=>{
+    S.decks[t] = shuffle(CARDS.filter(c=>c.t===t));
+  });
+  document.getElementById("setup").classList.remove("on");
+  document.getElementById("game").classList.add("on");
+  buildBoard(); renderAll();
+  log(`<b>${S.players[0].name}</b> starts the tour.`);
+};
+document.getElementById("resetBtn").onclick = ()=>{ if(confirm("Restart the game?")) location.reload(); };
+document.getElementById("howBtn").onclick = ()=> showRules();
+
+function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+/* ================= RENDER ================= */
+function buildBoard(){
+  const b = document.getElementById("board");
+  b.querySelectorAll(".tile").forEach(e=>e.remove());
+  BOARD.forEach((t,i)=>{
+    const info = TYPE_INFO[t.type];
+    const {x,y} = tileXY(i);
+    const d = document.createElement("div");
+    d.className = "tile" + (t.type==="CITY"?" city":"") + (t.type==="START"?" start":"");
+    d.style.left = x+"%"; d.style.top = y+"%";
+    d.id = "t"+i;
+    d.innerHTML = `<div class="tile-in">
+        <div class="ic">${info.icon}</div>
+        <div class="nm">${t.city || info.name}</div>
+        <div class="pawns" id="pw${i}"></div>
+      </div>`;
+    b.appendChild(d);
+  });
+}
+function renderAll(){
+  // pawns
+  BOARD.forEach((_,i)=>{ document.getElementById("pw"+i).innerHTML=""; document.getElementById("t"+i).classList.remove("here"); });
+  S.players.forEach(p=>{
+    const d = document.createElement("div"); d.className="pawn"; d.style.background=p.color;
+    document.getElementById("pw"+p.pos).appendChild(d);
+  });
+  document.getElementById("t"+S.players[S.turn].pos).classList.add("here");
+  // sidebar
+  document.getElementById("pList").innerHTML = S.players.map((p,i)=>`
+    <div class="p-card ${i===S.turn?"act":""}">
+      <div class="p-top">
+        <div class="pl-dot" style="background:${p.color};width:16px;height:16px"></div>
+        <div class="p-name">${esc(p.name)}</div><div class="p-pts">${p.pts} pts</div>
+      </div>
+      <div class="stamps">${CITIES.map(c=>`<div class="stamp ${p.stamps.includes(c)?"got":""}">${c==="New York"?"NYC":c.slice(0,5)}</div>`).join("")}</div>
+    </div>`).join("");
+  // turn banner
+  const p = S.players[S.turn];
+  document.getElementById("turnName").textContent = p.name + "'s turn";
+  document.getElementById("turnName").style.color = p.color;
+  const need = 5 - p.stamps.length;
+  document.getElementById("turnSub").innerHTML = need>0
+    ? `${need} stamp${need>1?"s":""} left — then get back Home to win.`
+    : `All 5 stamps! Get back <b>Home</b> to win the World Tour.`;
+}
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function log(html){
+  const l = document.getElementById("log");
+  const d = document.createElement("div"); d.innerHTML = html;
+  l.prepend(d);
+}
+
+/* ================= TURN LOOP ================= */
+const dieEl = document.getElementById("die");
+const rollBtn = document.getElementById("rollBtn");
+rollBtn.onclick = roll;
+
+function roll(){
+  if(S.busy) return; S.busy = true; rollBtn.disabled = true;
+  dieEl.classList.add("rolling");
+  let ticks = 0;
+  const iv = setInterval(()=>{ dieEl.textContent = "⚀⚁⚂⚃⚄⚅"[(Math.random()*6)|0]; if(++ticks>12){
+    clearInterval(iv);
+    const n = 1 + ((Math.random()*6)|0);
+    dieEl.classList.remove("rolling");
+    dieEl.textContent = "⚀⚁⚂⚃⚄⚅"[n-1];
+    move(n);
+  }}, 60);
+}
+
+function move(n){
+  const p = S.players[S.turn];
+  let step = 0, crossedHome = false;
+  const iv = setInterval(()=>{
+    p.pos = (p.pos + 1) % 30;
+    if(p.pos === 0){ p.lap++; crossedHome = true; }
+    renderAll();
+    if(++step >= n){
+      clearInterval(iv);
+      setTimeout(()=>{
+        // a full passport + reaching or passing Home ends the tour
+        if(crossedHome && p.stamps.length === 5){ p.pos = 0; renderAll(); return win(p); }
+        landed(p, n);
+      }, 350);
+    }
+  }, 190);
+}
+
+function landed(p, n){
+  const tile = BOARD[p.pos];
+  // HOME: win check
+  if(tile.type === "START"){
+    if(p.stamps.length === 5){ return win(p); }
+    log(`<b>${esc(p.name)}</b> is back Home but still needs ${5-p.stamps.length} stamp(s). Another lap!`);
+    return endTurn();
+  }
+  if(tile.type === "CITY"){
+    if(p.stamps.includes(tile.city)){
+      p.pts += 5; log(`<b>${esc(p.name)}</b> revisits ${tile.city} (+5 pts).`); renderAll();
+      return endTurn();
+    }
+    return openCard(CITY_CARDS[tile.city], p, tile.city);
+  }
+  return openCard(draw(tile.type), p, null);
+}
+
+function draw(type){
+  if(!S.decks[type] || !S.decks[type].length) S.decks[type] = shuffle(CARDS.filter(c=>c.t===type));
+  return S.decks[type].pop();
+}
+
+function endTurn(){
+  S.turn = (S.turn + 1) % S.players.length;
+  S.busy = false; rollBtn.disabled = false;
+  renderAll();
+}
+
+/* ================= CARD MODAL ================= */
+const modal = document.getElementById("modal"), mcard = document.getElementById("mcard");
+let timerIV = null;
+
+function openCard(card, p, city){
+  const info = TYPE_INFO[card.t] || TYPE_INFO.CITY;
+  const isWrite = card.mode === "write";
+  mcard.innerHTML = `
+    <div class="m-type"><span style="font-size:20px">${info.icon}</span>
+      ${city ? "City Challenge · "+city : info.name} · ${esc(p.name)}</div>
+    <div class="m-title">${card.title}</div>
+    <div class="m-focus">Language focus: ${card.focus}</div>
+    <div class="m-task">${card.task}</div>
+    <div class="m-lang"><b style="color:#fff">Useful language:</b><br>
+      ${card.lang.map(x=>`<span>${esc(x)}</span>`).join("")}</div>
+    ${isWrite ? `
+      <textarea id="writeBox" placeholder="Type your answer in English…"></textarea>
+      <div id="wcount">0 / ${card.min} words</div>
+      <div class="m-actions"><button class="btn" id="submitW" disabled>Submit for review</button></div>`
+    : `
+      <div id="timer">${fmt(card.sec)}</div>
+      <div class="m-actions"><button class="btn" id="startT">Start speaking ▶</button></div>`}
+  `;
+  modal.classList.add("on");
+
+  if(isWrite){
+    const box = document.getElementById("writeBox"), cnt = document.getElementById("wcount"), sub = document.getElementById("submitW");
+    box.focus();
+    box.oninput = ()=>{
+      const w = box.value.trim().split(/\s+/).filter(Boolean).length;
+      cnt.textContent = `${w} / ${card.min} words`;
+      cnt.className = w >= card.min ? "ok" : "";
+      sub.disabled = w < card.min;
+    };
+    sub.onclick = ()=> toVote(card, p, city, box.value.trim());
+  } else {
+    document.getElementById("startT").onclick = ()=> runTimer(card, p, city);
+  }
+}
+
+function fmt(s){ return String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0"); }
+
+function runTimer(card, p, city){
+  let left = card.sec;
+  const t = document.getElementById("timer");
+  document.querySelector(".m-actions").innerHTML =
+    `<button class="btn ghost" id="stopT">Finished early ⏹</button>`;
+  document.getElementById("stopT").onclick = ()=>{ clearInterval(timerIV); toVote(card,p,city,null); };
+  timerIV = setInterval(()=>{
+    left--; t.textContent = fmt(left);
+    if(left <= 10) t.classList.add("warn");
+    if(left <= 0){ clearInterval(timerIV); t.textContent = "TIME!"; toVote(card,p,city,null); }
+  }, 1000);
+}
+
+function toVote(card, p, city, written){
+  clearInterval(timerIV);
+  mcard.innerHTML = `
+    <div class="m-type">${TYPE_INFO[card.t]?.icon || "🛂"} ${card.title}</div>
+    <div class="m-title" style="font-size:23px">Group decision</div>
+    ${written ? `<div class="m-task" style="font-size:16px">${esc(written)}</div>` : ""}
+    <div class="m-task" style="font-size:16px;border-color:#4dabf7">
+      <b>Task was:</b> ${card.task}</div>
+    <div class="vote-note">Did <b>${esc(p.name)}</b> complete the challenge in correct English?
+      Everyone else votes.</div>
+    <div class="m-actions">
+      <button class="btn ok" id="vy">Yes — challenge passed (+${card.pts})</button>
+      <button class="btn no" id="vn">Not this time (0)</button>
+    </div>`;
+  document.getElementById("vy").onclick = ()=> resolve(true, card, p, city);
+  document.getElementById("vn").onclick = ()=> resolve(false, card, p, city);
+}
+
+function resolve(passed, card, p, city){
+  modal.classList.remove("on");
+  if(passed){
+    p.pts += card.pts;
+    if(city){ p.stamps.push(city); log(`🛂 <b>${esc(p.name)}</b> earned the <b>${city}</b> stamp! (+${card.pts})`); }
+    else log(`✅ <b>${esc(p.name)}</b> passed “${card.title}” (+${card.pts})`);
+  } else {
+    log(`❌ <b>${esc(p.name)}</b> did not pass “${card.title}”.`);
+  }
+  renderAll();
+  if(passed && city && p.stamps.length === 5) log(`🎉 <b>${esc(p.name)}</b> has all 5 stamps — head Home!`);
+  endTurn();
+}
+
+/* ================= WIN ================= */
+function win(p){
+  modal.classList.remove("on");
+  document.getElementById("game").classList.remove("on");
+  document.getElementById("winScreen").classList.add("on");
+  document.getElementById("winName").textContent = p.name;
+  const sorted = [...S.players].sort((a,b)=> b.stamps.length-a.stamps.length || b.pts-a.pts);
+  document.getElementById("scoreTable").innerHTML =
+    `<tr><th>Traveller</th><th>Stamps</th><th>Points</th></tr>` +
+    sorted.map(x=>`<tr><td><span class="pl-dot" style="display:inline-block;background:${x.color};width:12px;height:12px;vertical-align:middle"></span>
+      &nbsp;${esc(x.name)}</td><td>${x.stamps.length}/5</td><td>${x.pts}</td></tr>`).join("");
+}
+
+/* ================= RULES POPUP ================= */
+function showRules(){
+  mcard.innerHTML = `
+    <div class="m-type">📖 Rules</div>
+    <div class="m-title">World Tour — how to play</div>
+    <ol class="rules-list" style="margin-top:14px">
+      <li>Players take turns rolling the die and moving around the world map.</li>
+      <li>Each tile draws a challenge card. <b>English only</b> — one word of Spanish and the group can vote you down.</li>
+      <li><b>Speaking cards</b> are timed (30–90 s). <b>Postcard cards</b> are typed and must reach the word count.</li>
+      <li>The other players vote: passed = +10 points, failed = 0.</li>
+      <li>The 5 <b>city tiles</b> hold longer challenges worth 25 points and a <b>passport stamp</b>.</li>
+      <li>Collect all 5 stamps, return <b>Home</b>, and you win the World Tour.</li>
+    </ol>
+    <div class="m-actions" style="margin-top:20px"><button class="btn" id="closeR">Back to the game</button></div>`;
+  modal.classList.add("on");
+  document.getElementById("closeR").onclick = ()=> modal.classList.remove("on");
+}
+</script>
+</body>
+</html>
