@@ -1,8 +1,7 @@
 # Entregables calificados: NO se publican.
 # El repo es público y estos son los documentos que entrego a la profesora;
 # no tiene sentido dejárselos servidos a otros equipos de la clase.
-World-Tour-Written-Component.docx
-World-Tour-Presentation.docx
+*.docx
 WRITTEN-COMPONENT.md
 PRESENTATION-SCRIPT.md
 _build_docx.py
