@@ -2,9 +2,23 @@
 
 Videojuego de mesa para practicar inglés. Proyecto de clase, 2026-09-10.
 
-## Cómo jugar
+## ▶ Jugar
 
-Doble clic en **`index.html`**. Abre en el navegador, funciona offline, no necesita instalar nada.
+### **https://diego-3444.github.io/English-Class/**
+
+Funciona en celular, tablet o computadora. 2–4 jugadores.
+
+También puedes descargar el repo y hacer doble clic en **`index.html`**: corre offline, sin instalar nada.
+
+## De qué va
+
+Tiras el dado, avanzas por un mapa mundial y cada casilla te lanza un reto en inglés
+**cronometrado**: pedir en un restaurante, reclamar en un hotel, improvisar una historia,
+escribir una postal. El resto del grupo vota si lo lograste.
+
+Junta los 5 sellos de pasaporte (Tokyo, Cairo, Paris, Lima, New York), vuelve a casa y ganas.
+
+**30 casillas · 46 cartas · sin dependencias, sin build, sin internet.**
 
 En Chrome, `⌃⌘F` para pantalla completa. Escribe los nombres antes de darle a *Start the tour*.
 
